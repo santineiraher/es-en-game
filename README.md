@@ -8,9 +8,9 @@ Webapp estática (HTML + CSS + JavaScript, sin build) para practicar inglés des
 
 1. La **primera vez** verás una bienvenida con texto grande: puedes **Hacer la prueba** o **Saltar (empezar desde A1)**.
 2. La prueba tiene **entre 12 y 20** preguntas (la app puede terminar antes si la estimación se estabiliza). Empieza en torno a **A2** y **sube o baja** según rachas de aciertos/fallos.
-3. Tipos de pregunta: **opción múltiple**, **hueco**, **detectar error** y **traducción corta ES → EN** (según el banco).
+3. Tipos de pregunta: **opción múltiple**, **hueco**, **detectar error** y **traducción corta ES → EN**, con enunciados reales (ya no son plantillas genéricas).
 4. Durante la prueba **no se muestra la respuesta correcta**; solo confirmación de que se registró tu respuesta. Hay **No sé / saltar** (puntuación parcial) y **Pausar y guardar** (se guarda en el navegador).
-5. Al terminar verás el **nivel CEFR estimado**, un **texto de recomendación**, **barras por categoría** y dos botones: **Empezar con esta ruta** (desbloqueo guiado) o **Quiero elegir yo** (más libertad hasta tu nivel).
+5. Al terminar verás el **nivel CEFR estimado**, un **texto con tu puntuación %** (ponderada por dificultad), **barras por categoría** y dos botones: **Empezar con esta ruta** (desbloqueo guiado) o **Quiero elegir yo** (más libertad hasta tu nivel).
 6. Puedes repetir la prueba desde **Mi nivel** o **Configuración**.
 
 Los datos de la prueba viven en `localStorage` bajo las claves `en_placement_test_partial` (pausa) y `en_placement_result_v1` (resultado).

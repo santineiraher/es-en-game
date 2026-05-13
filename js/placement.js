@@ -1,10 +1,9 @@
 /**
  * Prueba de ubicación adaptativa (12–20 ítems).
  *
- * Algoritmo resumido:
- * - Por pregunta: +1 acierto, 0 fallo, +0.3 "no sé".
- * - Por categoría: media(score) mapeada a CEFR con peso por dificultad de la pregunta (cefr_level).
- * - Nivel global: mediana de los niveles estimados por categoría observada; si hay 2+ categorías en B2 o más con media alta, sube un escalón.
+ * Adaptación: rachas suben/bajan el nivel de la siguiente pregunta (A1…C1).
+ * Resultado final: puntos ponderados por dificultad (A1=1 … C1=5); acierto pleno,
+ * «No sé» ~35% del peso, fallo 0. El CEFR global sale de un umbral sobre el % del máximo.
  */
 (function (global) {
   const K = global.EnStorage.KEYS;
@@ -36,12 +35,24 @@
   }
 
   function pickNextQuestion(session) {
-    const pool = bank().filter(function (q) {
-      return session.askedIds.indexOf(q.id) < 0 && cefrToNum(q.cefr_level) === session.currentIdx;
-    });
+    const asked = session.askedIds;
+    function poolAtLevel(levelIdx) {
+      return bank().filter(function (q) {
+        return asked.indexOf(q.id) < 0 && cefrToNum(q.cefr_level) === levelIdx;
+      });
+    }
+    let pool = poolAtLevel(session.currentIdx);
+    if (!pool.length) {
+      for (let d = 1; d <= 4; d++) {
+        pool = poolAtLevel(Math.min(4, session.currentIdx + d));
+        if (pool.length) break;
+        pool = poolAtLevel(Math.max(0, session.currentIdx - d));
+        if (pool.length) break;
+      }
+    }
     if (!pool.length) {
       const any = bank().filter(function (q) {
-        return session.askedIds.indexOf(q.id) < 0;
+        return asked.indexOf(q.id) < 0;
       });
       if (!any.length) return null;
       return any[Math.floor(Math.random() * any.length)];
@@ -83,40 +94,80 @@
     return varia < 0.35 && session.answers.length >= 14;
   }
 
+  /**
+   * Resultado final (transparente):
+   * - Cada respuesta suma puntos según la dificultad declarada (A1=1 … C1=5).
+   * - Acierto = peso completo; "No sé" ≈ 35% del peso; fallo = 0.
+   * - Nivel global: umbral sobre el % del máximo posible (orientación, no certificación).
+   * - Por categoría: mismo criterio solo con ítems de esa categoría.
+   */
   function finalize(session) {
-    const byCat = {};
+    const LEVEL_WEIGHT = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5 };
+
+    function pointsForAnswer(a) {
+      const lv = String(a.cefr_level || "A2").toUpperCase();
+      const w = LEVEL_WEIGHT[lv] != null ? LEVEL_WEIGHT[lv] : 2;
+      if (a.score >= 1) return { earned: w, possible: w };
+      if (a.score >= 0.29) return { earned: w * 0.35, possible: w };
+      return { earned: 0, possible: w };
+    }
+
+    let earned = 0;
+    let possible = 0;
     session.answers.forEach(function (a) {
-      const c = a.category || "tense";
-      if (!byCat[c]) byCat[c] = { sum: 0, w: 0, count: 0 };
-      const w = cefrToNum(a.cefr_level) + 1;
-      byCat[c].sum += a.score * w;
-      byCat[c].w += w;
-      byCat[c].count += 1;
+      const p = pointsForAnswer(a);
+      earned += p.earned;
+      possible += p.possible;
     });
+    const ratio = possible ? earned / possible : 0;
+    const pct = Math.round(ratio * 100);
+
+    let estimated_cefr = "A1";
+    if (ratio >= 0.78) estimated_cefr = "C1";
+    else if (ratio >= 0.62) estimated_cefr = "B2";
+    else if (ratio >= 0.46) estimated_cefr = "B1";
+    else if (ratio >= 0.3) estimated_cefr = "A2";
+    else estimated_cefr = "A1";
+
+    const cats = ["tense", "phrasal", "idiom", "false_friend", "prep", "modal"];
     const per_category = {};
-    const nums = [];
-    Object.keys(byCat).forEach(function (c) {
-      const r = byCat[c].w ? byCat[c].sum / byCat[c].w : 0;
-      const mapped = r >= 0.85 ? 3 : r >= 0.65 ? 2 : r >= 0.45 ? 1 : r >= 0.25 ? 0 : 0;
-      const label = numToCefr(mapped + 1);
-      per_category[c] = label;
-      nums.push(cefrToNum(label));
+    cats.forEach(function (c) {
+      let e = 0;
+      let p = 0;
+      session.answers.forEach(function (a) {
+        if ((a.category || "tense") !== c) return;
+        const x = pointsForAnswer(a);
+        e += x.earned;
+        p += x.possible;
+      });
+      const r = p ? e / p : ratio;
+      if (p === 0) {
+        per_category[c] = estimated_cefr;
+        return;
+      }
+      if (r >= 0.72) per_category[c] = "C1";
+      else if (r >= 0.58) per_category[c] = "B2";
+      else if (r >= 0.42) per_category[c] = "B1";
+      else if (r >= 0.26) per_category[c] = "A2";
+      else per_category[c] = "A1";
     });
-    nums.sort(function (a, b) {
-      return a - b;
-    });
-    let med = nums.length ? nums[Math.floor(nums.length / 2)] : 1;
-    const high = Object.keys(per_category).filter(function (c) {
-      return cefrToNum(per_category[c]) >= 3;
-    }).length;
-    if (high >= 2) med = Math.min(CEFR.length - 1, med + 1);
-    const estimated_cefr = CEFR[med];
+
+    const summary_es =
+      "Puntuación global aproximada: " +
+      pct +
+      "% del máximo posible (las preguntas más avanzadas valen más; «No sé» suma un poco). " +
+      "Con eso estimamos un nivel orientativo " +
+      estimated_cefr +
+      ". No es un examen oficial: sirve para sugerirte por dónde empezar en la app.";
 
     const result = {
-      estimated_cefr,
-      per_category,
+      estimated_cefr: estimated_cefr,
+      per_category: per_category,
       taken_at: Date.now(),
       answers: session.answers,
+      placement_ratio: ratio,
+      placement_percent: pct,
+      summary_es: summary_es,
     };
     global.EnStorage.setJSON(K.PLACEMENT_RESULT, result);
     clearPartial();
@@ -142,6 +193,14 @@
     p.textContent = q.stem_es || "";
     root.appendChild(p);
     const t = q.type || "mcq";
+    if (t === "spot_error" && q.stem_en) {
+      const box = document.createElement("p");
+      box.className = "question-text";
+      box.style.fontSize = "calc(20px * var(--ui-scale))";
+      box.setAttribute("lang", "en");
+      box.textContent = q.stem_en;
+      root.appendChild(box);
+    }
     if (t === "mcq" || t === "spot_error") {
       const grid = document.createElement("div");
       grid.className = "mcq-grid";

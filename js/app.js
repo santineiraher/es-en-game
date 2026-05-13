@@ -204,7 +204,7 @@
     root.appendChild(h);
     const p = document.createElement("p");
     p.className = "lead";
-    p.textContent = humanRecommendation(result);
+    p.textContent = (result.summary_es || "") + " " + humanRecommendation(result);
     root.appendChild(p);
 
     const bars = document.createElement("div");
@@ -599,12 +599,20 @@
       root.innerHTML = "<p class='lead'>Aún no hay resultado de prueba. Puedes hacerla desde Inicio o Configuración.</p>";
       return;
     }
-    root.innerHTML =
-      "<p class='question-text'>Tu último nivel estimado: " +
-      res.estimated_cefr +
-      "</p><p class='muted'>Fecha: " +
-      new Date(res.taken_at).toLocaleString() +
-      "</p>";
+    if (res.summary_es) {
+      const ps = document.createElement("p");
+      ps.className = "lead";
+      ps.textContent = res.summary_es;
+      root.appendChild(ps);
+    }
+    const ph = document.createElement("p");
+    ph.className = "question-text";
+    ph.textContent = "Tu último nivel estimado: " + res.estimated_cefr;
+    root.appendChild(ph);
+    const dt = document.createElement("p");
+    dt.className = "muted";
+    dt.textContent = "Fecha: " + new Date(res.taken_at).toLocaleString();
+    root.appendChild(dt);
     const b = document.createElement("button");
     b.className = "secondary";
     b.textContent = "Volver a tomar la prueba";
