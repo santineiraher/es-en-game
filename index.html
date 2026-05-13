@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#2563eb" />
+  <meta name="description" content="Aprende inglés con tracks, repaso espaciado y prueba de nivel. Para hispanohablantes." />
+  <title>Inglés — práctica guiada</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icons/icon-192.png" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Saltar al contenido</a>
+
+  <header class="app-header">
+    <div class="header-top">
+      <h1>Inglés — práctica guiada</h1>
+      <div class="header-actions">
+        <button type="button" id="btnLargeText" class="secondary" aria-pressed="true" title="Letra grande">Aa</button>
+        <button type="button" id="btnTheme" class="secondary">Tema</button>
+      </div>
+    </div>
+    <nav class="nav-btns" aria-label="Secciones principales">
+      <button type="button" class="secondary active" data-mode="welcome">Inicio</button>
+      <button type="button" class="secondary" data-mode="tracks">Tracks</button>
+      <button type="button" class="secondary" data-mode="flashcards">Flashcards</button>
+      <button type="button" class="secondary" data-mode="list">Lista</button>
+      <button type="button" class="secondary" data-mode="reference">Referencia</button>
+      <button type="button" class="secondary" data-mode="game">Juego</button>
+      <button type="button" class="secondary" data-mode="srs">Repaso</button>
+      <button type="button" class="secondary" data-mode="progress">Progreso</button>
+      <button type="button" class="secondary" data-mode="exam">Examen</button>
+      <button type="button" class="secondary" data-mode="mylevel">Mi nivel</button>
+      <button type="button" class="secondary" data-mode="settings">Configuración</button>
+    </nav>
+  </header>
+
+  <main id="main" class="container" tabindex="-1">
+    <!-- Welcome / placement entry -->
+    <section id="viewWelcome" class="view" aria-label="Bienvenida">
+      <p class="question-text" id="welcomeTitle">¡Hola!</p>
+      <p class="lead" id="welcomeText"></p>
+      <div class="actions" id="welcomeActions"></div>
+    </section>
+
+    <!-- Placement test -->
+    <section id="viewPlacement" class="view hidden" aria-label="Prueba de ubicación">
+      <p class="muted" id="placementProgress"></p>
+      <div id="placementRoot" class="panel"></div>
+      <div class="actions">
+        <button type="button" class="secondary" id="placementDontKnow">No sé / saltar</button>
+        <button type="button" class="secondary" id="placementPause">Pausar y guardar</button>
+      </div>
+    </section>
+
+    <!-- Placement results -->
+    <section id="viewPlacementResult" class="view hidden" aria-label="Resultado de la prueba">
+      <div id="placementResultRoot"></div>
+    </section>
+
+    <!-- Tracks -->
+    <section id="viewTracks" class="view hidden" aria-label="Tracks">
+      <p class="lead">Elige un track y un nivel. Los marcados con estrella están recomendados según tu prueba.</p>
+      <div id="tracksRoot" class="track-grid"></div>
+    </section>
+
+    <!-- Flashcards -->
+    <section id="viewFlashcards" class="view hidden" aria-label="Flashcards">
+      <p class="muted">Toca la tarjeta o usa los botones. También puedes deslizar en el celular.</p>
+      <div class="card-wrap" id="fcSwipeArea">
+        <div class="card-inner" id="fcInner">
+          <div class="card-face front" id="fcFront">—</div>
+          <div class="card-face back" id="fcBack">—</div>
+        </div>
+      </div>
+      <div class="actions" style="justify-content:center">
+        <button type="button" class="secondary" id="fcPrev">Anterior</button>
+        <button type="button" class="primary" id="fcFlip">Ver respuesta</button>
+        <button type="button" class="secondary" id="fcNext">Siguiente</button>
+        <button type="button" class="secondary" id="fcRand">Al azar</button>
+      </div>
+      <div class="actions" style="justify-content:center">
+        <button type="button" class="primary" id="fcKnown">Correcto (lo sabía)</button>
+        <button type="button" class="secondary" id="fcUnknown">No lo sabía</button>
+      </div>
+    </section>
+
+    <!-- List -->
+    <section id="viewList" class="view hidden" aria-label="Lista de ítems">
+      <label class="field" for="listSearch">Buscar en la lista</label>
+      <input type="search" id="listSearch" autocomplete="off" placeholder="Palabra en español o inglés" />
+      <div id="listRoot" style="margin-top:16px"></div>
+    </section>
+
+    <!-- Reference -->
+    <section id="viewReference" class="view hidden" aria-label="Referencia rápida">
+      <p class="lead">Tabla de ayuda: contrastes comunes para hispanohablantes.</p>
+      <div class="table-wrap">
+        <table class="data" id="refTable"></table>
+      </div>
+    </section>
+
+    <!-- Game -->
+    <section id="viewGame" class="view hidden" aria-label="Juego por nivel">
+      <div class="panel">
+        <div class="row">
+          <label class="field" for="gameTrack">Track
+            <select id="gameTrack"></select>
+          </label>
+          <label class="field" for="gameLevel">Nivel (dentro del track)
+            <select id="gameLevel"></select>
+          </label>
+        </div>
+        <p class="muted" id="gameStats"></p>
+        <div id="gameExercise"></div>
+        <label class="field" style="margin-top:12px">
+          <input type="checkbox" id="gameStrictAccents" />
+          Acentos estrictos en inglés (cuando aplique)
+        </label>
+      </div>
+    </section>
+
+    <!-- SRS -->
+    <section id="viewSrs" class="view hidden" aria-label="Repaso espaciado">
+      <div class="panel">
+        <p class="lead">Repaso espaciado (6 cajas tipo Leitner). Practica lo que más te cuesta.</p>
+        <div class="srs-stats" id="srsStats"></div>
+        <div id="srsExercise"></div>
+        <label class="field" style="margin-top:12px">
+          <input type="checkbox" id="srsStrictAccents" />
+          Acentos estrictos en inglés (cuando aplique)
+        </label>
+        <div class="actions">
+          <button type="button" class="secondary" id="btnExport">Exportar progreso (JSON)</button>
+          <label class="buttonlike secondary" style="display:inline-flex;align-items:center;min-height:var(--btn-min-h)">
+            Importar progreso
+            <input type="file" id="importFile" accept="application/json,.json" style="display:none" />
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Progress -->
+    <section id="viewProgress" class="view hidden" aria-label="Progreso">
+      <div id="progressRoot"></div>
+    </section>
+
+    <!-- Exam -->
+    <section id="viewExam" class="view hidden" aria-label="Modo examen">
+      <div class="panel">
+        <p class="lead">25 preguntas mezcladas según tu nivel estimado.</p>
+        <label class="field">
+          <input type="checkbox" id="examTimerToggle" />
+          Usar cronómetro (30 minutos)
+        </label>
+        <p class="muted hidden" id="examTimerDisplay"></p>
+        <div class="actions">
+          <button type="button" class="primary" id="examStart">Empezar examen</button>
+        </div>
+        <div id="examRoot" class="hidden" style="margin-top:16px"></div>
+      </div>
+    </section>
+
+    <!-- My level -->
+    <section id="viewMyLevel" class="view hidden" aria-label="Mi nivel">
+      <div id="myLevelRoot"></div>
+    </section>
+
+    <!-- Settings -->
+    <section id="viewSettings" class="view hidden" aria-label="Configuración">
+      <div class="panel">
+        <h2 class="question-text" style="font-size:calc(1.25rem * var(--ui-scale))">Preferencias</h2>
+        <label class="field">
+          <input type="checkbox" id="setStrictAccents" />
+          Acentos estrictos (global)
+        </label>
+        <p class="muted">La letra grande (Aa) y el tema están en la parte superior en todo momento.</p>
+        <div class="actions">
+          <button type="button" class="secondary" id="btnRetakePlacement">Volver a tomar la prueba de nivel</button>
+        </div>
+        <details class="help">
+          <summary>Información sobre datos y privacidad</summary>
+          <p>Todo se guarda en tu navegador (localStorage). Puedes exportar un archivo JSON para respaldo.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <div id="modalHost"></div>
+
+  <!-- Data -->
+  <script src="./data/tenses.js"></script>
+  <script src="./data/irregular-verbs.js"></script>
+  <script src="./data/phrasal-verbs.js"></script>
+  <script src="./data/idioms.js"></script>
+  <script src="./data/false-friends.js"></script>
+  <script src="./data/prepositions.js"></script>
+  <script src="./data/articles-quantifiers.js"></script>
+  <script src="./data/placement-test.js"></script>
+
+  <!-- Core -->
+  <script src="./js/storage.js"></script>
+  <script src="./js/theme-large-text.js"></script>
+  <script src="./js/normalize-answer.js"></script>
+  <script src="./js/srs.js"></script>
+  <script src="./js/speech.js"></script>
+  <script src="./js/tracks-meta.js"></script>
+  <script src="./js/game-progress.js"></script>
+  <script src="./js/items-registry.js"></script>
+  <script src="./js/exercise-engine.js"></script>
+  <script src="./js/placement.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>
