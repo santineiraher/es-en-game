@@ -108,7 +108,11 @@
       cefr: "A2",
       category: "tense",
       exerciseType: "translate_es_en",
-      prompt_es: "Traduce (presente, I): Yo " + inf + " todos los días.",
+      prompt_es:
+        "Escribe en inglés una oración corta en presente simple con sujeto **I** y el verbo **" +
+        inf +
+        "**, con idea de algo habitual (por ejemplo con *every day* o *usually*). " +
+        "Ejemplo de estructura: I + forma del presente + complemento.",
       accept: ["I " + p1, "I " + inf],
       correctDisplay: "I " + p1,
       hint: "I + forma del presente.",

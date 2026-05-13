@@ -1,7 +1,7 @@
 /**
  * PWA offline — incrementar CACHE_NAME al publicar cambios.
  */
-const CACHE_NAME = "en-es-game-v4";
+const CACHE_NAME = "en-es-game-v5";
 
 const PRECACHE_URLS = [
   "./",
