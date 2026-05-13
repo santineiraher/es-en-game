@@ -622,6 +622,91 @@
     };
   }
 
+  function shuffleArray(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = a[i];
+      a[i] = a[j];
+      a[j] = t;
+    }
+    return a;
+  }
+
+  /** Evita el mismo enunciado varias veces; reparte por track para mezclar temas. */
+  function examSignature(it) {
+    const et = it.exerciseType || "mcq";
+    const pe = String(it.prompt_es || "")
+      .trim()
+      .toLowerCase();
+    const blank = String(it.blankSentence || "").trim();
+    const ctx = String(it.context_en || "").trim().slice(0, 100);
+    if (et === "mcq" || et === "spot_error") {
+      const ch = (it.choices || []).join("¦");
+      return et + "|" + pe + "|" + ch;
+    }
+    if (et === "word_order") {
+      return et + "|" + (it.tokens || []).join(",");
+    }
+    return et + "|" + pe + "|" + blank + "|" + ctx;
+  }
+
+  function pickExamItems(pool, maxCount) {
+    const deduped = [];
+    const seenSig = {};
+    shuffleArray(pool).forEach(function (it) {
+      const sig = examSignature(it);
+      if (seenSig[sig]) return;
+      seenSig[sig] = true;
+      deduped.push(it);
+    });
+    const target = Math.min(maxCount, deduped.length);
+    const byTrack = {};
+    deduped.forEach(function (it) {
+      const tid = it.trackId || "other";
+      if (!byTrack[tid]) byTrack[tid] = [];
+      byTrack[tid].push(it);
+    });
+    Object.keys(byTrack).forEach(function (tid) {
+      byTrack[tid] = shuffleArray(byTrack[tid]);
+    });
+    const trackOrder = window.EnTracks.TRACKS.map(function (t) {
+      return t.id;
+    });
+    const picked = [];
+    const inPicked = {};
+    let madeProgress = true;
+    while (picked.length < target && madeProgress) {
+      madeProgress = false;
+      for (let ti = 0; ti < trackOrder.length; ti++) {
+        if (picked.length >= target) break;
+        const tid = trackOrder[ti];
+        const b = byTrack[tid];
+        if (!b || !b.length) continue;
+        const it = b.shift();
+        if (it && !inPicked[it.id]) {
+          picked.push(it);
+          inPicked[it.id] = true;
+          madeProgress = true;
+        }
+      }
+    }
+    const leftover = [];
+    Object.keys(byTrack).forEach(function (tid) {
+      (byTrack[tid] || []).forEach(function (it) {
+        leftover.push(it);
+      });
+    });
+    shuffleArray(leftover).forEach(function (it) {
+      if (picked.length >= target) return;
+      if (!inPicked[it.id]) {
+        picked.push(it);
+        inPicked[it.id] = true;
+      }
+    });
+    return picked;
+  }
+
   function runExam(useTimer) {
     const root = $("examRoot");
     root.classList.remove("hidden");
@@ -631,11 +716,11 @@
     const pool = (window.EN_ALL_ITEMS || []).filter(function (it) {
       return window.EnTracks.cefrIndex(it.cefr) <= cap + 1;
     });
-    const picked = [];
-    const copy = pool.slice();
-    for (let i = 0; i < 25 && copy.length; i++) {
-      const j = Math.floor(Math.random() * copy.length);
-      picked.push(copy.splice(j, 1)[0]);
+    const picked = pickExamItems(pool, 25);
+    if (!picked.length) {
+      root.innerHTML =
+        "<p class='lead'>No hay preguntas disponibles para tu nivel. Prueba después de cargar datos o de hacer la prueba de nivel.</p>";
+      return;
     }
     let score = 0;
     let idx = 0;
@@ -664,7 +749,7 @@
       const item = picked[idx];
       const h = document.createElement("p");
       h.className = "muted";
-      h.textContent = "Pregunta " + (idx + 1) + " de 25";
+      h.textContent = "Pregunta " + (idx + 1) + " de " + picked.length;
       root.appendChild(h);
       const wrap = document.createElement("div");
       root.appendChild(wrap);
